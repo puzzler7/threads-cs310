@@ -13,7 +13,7 @@
 using namespace std;
 
 deque<ucontext_t*> waiting;
-ucontext_t* running;
+ucontext_t* running = (ucontext_t*) malloc(sizeof(ucontext_t));
 
 int thread_libinit(thread_startfunc_t func, void *arg){
 	getcontext(running);
