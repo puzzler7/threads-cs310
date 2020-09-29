@@ -1,11 +1,16 @@
 #include "interrupt.h"
 #include "thread.h"
 #include <ucontext.h>
+#include <cstdlib>
+#include <fstream>
+#include <iostream>
 
 #include <stdio.h>
 #include <string.h>
 #include <deque> 
 #include <cmath>
+
+using namespace std;
 
 deque<ucontext_t*> waiting;
 ucontext_t* running;
@@ -28,7 +33,7 @@ int thread_libinit(thread_startfunc_t func, void *arg){
 }
 
 int thread_create(thread_startfunc_t func, void *arg){
-	ucontext_t* newthread;
+	ucontext_t* newthread = (ucontext_t*)malloc(sizeof(newthread));
 
 	getcontext(newthread);
 	char *stack = new char [STACK_SIZE];
@@ -39,14 +44,17 @@ int thread_create(thread_startfunc_t func, void *arg){
 
 	makecontext(newthread, (void (*)()) func, 1, arg);
 	waiting.push_back(newthread);
+	return 0;
 }
 
 int thread_yield(void){
-	ucontext_t* next = waiting.pop_front();
+	ucontext_t* next = waiting.front();
+	waiting.pop_front();
 	waiting.push_back(running);
 	ucontext_t* oldrun = running;
 	running = next;
-	swapcontext(running, next);
+	swapcontext(oldrun, next);
+	return 0;
 }
 
 /*
