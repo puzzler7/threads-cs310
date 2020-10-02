@@ -14,10 +14,11 @@ using namespace std;
 
 deque<ucontext_t*> waiting;
 ucontext_t* running = (ucontext_t*) malloc(sizeof(ucontext_t));
+ucontext_t* dead = (ucontext_t*) malloc(sizeof(ucontext_t));
 
 void runNext(bool del) {
 	if (del) {
-
+		free(running);
 	} else {
 		waiting.push_back(running);
 	}
@@ -29,7 +30,11 @@ void runNext(bool del) {
 	waiting.pop_front();
 	ucontext_t* oldrun = running;
 	running = next;
-	swapcontext(oldrun, next);
+	if (del) {
+		swapcontext(dead, next);
+	} else {
+		swapcontext(oldrun, next);
+	}
 }
 
 void stub(void* fn, void* arg) {
