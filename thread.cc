@@ -15,6 +15,28 @@ using namespace std;
 deque<ucontext_t*> waiting;
 ucontext_t* running = (ucontext_t*) malloc(sizeof(ucontext_t));
 
+void runNext(bool del) {
+	if (del) {
+
+	} else {
+		waiting.push_back(running);
+	}
+	if (waiting.size() <= 0) {
+		cout << "Thread library exiting.\n";
+		exit(0);
+	}
+	ucontext_t* next = waiting.front();
+	waiting.pop_front();
+	ucontext_t* oldrun = running;
+	running = next;
+	swapcontext(oldrun, next);
+}
+
+void stub(void* fn, void* arg) {
+	((void (*)(void*))fn)(arg);
+	runNext(true);
+}
+
 int thread_libinit(thread_startfunc_t func, void *arg){
 	getcontext(running);
 
@@ -24,7 +46,7 @@ int thread_libinit(thread_startfunc_t func, void *arg){
 	running->uc_stack.ss_flags = 0;
 	running->uc_link = NULL;
 
-	makecontext(running, (void (*)()) func, 1, arg);
+	makecontext(running, (void (*)()) stub, 2, func, arg);
 
 	setcontext(running);
 
@@ -33,7 +55,7 @@ int thread_libinit(thread_startfunc_t func, void *arg){
 }
 
 int thread_create(thread_startfunc_t func, void *arg){
-	ucontext_t* newthread = (ucontext_t*)malloc(sizeof(newthread));
+	ucontext_t* newthread = (ucontext_t*)malloc(sizeof(ucontext_t));
 
 	getcontext(newthread);
 	char *stack = new char [STACK_SIZE];
@@ -42,18 +64,13 @@ int thread_create(thread_startfunc_t func, void *arg){
 	newthread->uc_stack.ss_flags = 0;
 	newthread->uc_link = NULL;
 
-	makecontext(newthread, (void (*)()) func, 1, arg);
+	makecontext(newthread, (void (*)()) stub, 2, func, arg);
 	waiting.push_back(newthread);
 	return 0;
 }
 
 int thread_yield(void){
-	ucontext_t* next = waiting.front();
-	waiting.pop_front();
-	waiting.push_back(running);
-	ucontext_t* oldrun = running;
-	running = next;
-	swapcontext(oldrun, next);
+	runNext(false);
 	return 0;
 }
 
