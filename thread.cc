@@ -9,12 +9,14 @@
 #include <string.h>
 #include <deque> 
 #include <cmath>
+#include <assert.h>
 
 using namespace std;
 
 deque<ucontext_t*> waiting;
 ucontext_t* running = (ucontext_t*) malloc(sizeof(ucontext_t));
 ucontext_t* dead = (ucontext_t*) malloc(sizeof(ucontext_t));
+bool initialized = false;
 
 void runNext(bool del) {
 	if (del) {
@@ -52,7 +54,7 @@ int thread_libinit(thread_startfunc_t func, void *arg){
 	running->uc_link = NULL;
 
 	makecontext(running, (void (*)()) stub, 2, func, arg);
-
+	initialized = true;
 	setcontext(running);
 
 	cout << "Thread library exiting.\n";
@@ -60,6 +62,7 @@ int thread_libinit(thread_startfunc_t func, void *arg){
 }
 
 int thread_create(thread_startfunc_t func, void *arg){
+	assert(initialized);
 	ucontext_t* newthread = (ucontext_t*)malloc(sizeof(ucontext_t));
 
 	getcontext(newthread);
@@ -75,27 +78,28 @@ int thread_create(thread_startfunc_t func, void *arg){
 }
 
 int thread_yield(void){
+	assert(initialized);
 	runNext(false);
 	return 0;
 }
 
 /*
 int thread_lock(unsigned int lock){
-
+	assert(initialized);
 }
 
 int thread_unlock(unsigned int lock){
-
+	assert(initialized);
 }
 
 int thread_wait(unsigned int lock, unsigned int cond){
-
+	assert(initialized);
 }
 
 int thread_signal(unsigned int lock, unsigned int cond){
-
+	assert(initialized);
 }
 
 int thread_broadcast(unsigned int lock, unsigned int cond){
-
+	assert(initialized);
 }*/
