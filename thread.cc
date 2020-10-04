@@ -45,7 +45,9 @@ void stub(void* fn, void* arg) {
 }
 
 int thread_libinit(thread_startfunc_t func, void *arg){
-	assert(!initialized);
+	if (initialized) {
+		return -1;
+	}
 	getcontext(running);
 
 	char *stack = new char [STACK_SIZE];
@@ -63,44 +65,64 @@ int thread_libinit(thread_startfunc_t func, void *arg){
 }
 
 int thread_create(thread_startfunc_t func, void *arg){
-	assert(initialized);
-	ucontext_t* newthread = (ucontext_t*)malloc(sizeof(ucontext_t));
+	if(!initialized) {
+		return -1;
+	}
+	interrupt_disable();
+	try {
+		ucontext_t* newthread = (ucontext_t*)malloc(sizeof(ucontext_t));
 
-	getcontext(newthread);
-	char *stack = new char [STACK_SIZE];
-	newthread->uc_stack.ss_sp = stack;
-	newthread->uc_stack.ss_size = STACK_SIZE;
-	newthread->uc_stack.ss_flags = 0;
-	newthread->uc_link = NULL;
+		getcontext(newthread);
+		char *stack = new char [STACK_SIZE];
+		newthread->uc_stack.ss_sp = stack;
+		newthread->uc_stack.ss_size = STACK_SIZE;
+		newthread->uc_stack.ss_flags = 0;
+		newthread->uc_link = NULL;
+	} catch (std::bad_alloc& ba) {
+		return -1;
+	}
 
 	makecontext(newthread, (void (*)()) stub, 2, func, arg);
 	waiting.push_back(newthread);
+	interrupt_enable();
 	return 0;
 }
 
 int thread_yield(void){
-	assert(initialized);
+	if(!initialized) {
+		return -1;
+	}
 	runNext(false);
 	return 0;
 }
 
 /*
 int thread_lock(unsigned int lock){
-	assert(initialized);
+	if(!initialized) {
+		return -1;
+	}
 }
 
 int thread_unlock(unsigned int lock){
-	assert(initialized);
+	if(!initialized) {
+		return -1;
+	}
 }
 
 int thread_wait(unsigned int lock, unsigned int cond){
-	assert(initialized);
+	if(!initialized) {
+		return -1;
+	}
 }
 
 int thread_signal(unsigned int lock, unsigned int cond){
-	assert(initialized);
+	if(!initialized) {
+		return -1;
+	}
 }
 
 int thread_broadcast(unsigned int lock, unsigned int cond){
-	assert(initialized);
+	if(!initialized) {
+		return -1;
+	}
 }*/
