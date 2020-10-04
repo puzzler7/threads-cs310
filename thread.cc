@@ -45,6 +45,7 @@ void stub(void* fn, void* arg) {
 }
 
 int thread_libinit(thread_startfunc_t func, void *arg){
+	assert(!initialized);
 	getcontext(running);
 
 	char *stack = new char [STACK_SIZE];
