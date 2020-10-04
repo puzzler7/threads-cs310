@@ -9,17 +9,20 @@
 #include <string.h>
 #include <deque> 
 #include <cmath>
+#include <map>
 #include <assert.h>
 
 using namespace std;
 
 deque<ucontext_t*> waiting;
 ucontext_t* running;
-ucontext_t* dead ;
+ucontext_t* dead;
 ucontext_t* to_kill = NULL;
 bool initialized = false;
+map <int, bool> locks;
+map <int, deque<ucontext_t*> > locked_threads;
 
-void runNext(bool del) {
+void runNext(bool del, bool slp) {
 	if (to_kill != NULL) {
 		free(to_kill->uc_stack.ss_sp);
 		free(to_kill);
@@ -27,6 +30,8 @@ void runNext(bool del) {
 	}
 	if (del) {
 		to_kill = running;
+	} else if (slp) {
+
 	} else {
 		waiting.push_back(running);
 	}
@@ -39,18 +44,26 @@ void runNext(bool del) {
 	ucontext_t* oldrun = running;
 	running = next;
 	if (del) {
-		swapcontext(dead, next);
+		swap(dead, next);
 	} else {
-		swapcontext(oldrun, next);
+		swap(oldrun, next);
 	}
 }
 
 void stub(void* fn, void* arg) {
 	((void (*)(void*))fn)(arg);
-	runNext(true);
+	runNext(true, false);
+}
+
+int swap(ucontext_t* curr, ucontext_t* next) {
+	interrupt_enable();
+	int ret = swapcontext(curr, next);
+	interrupt_disable();
+	return ret;
 }
 
 int thread_libinit(thread_startfunc_t func, void *arg){
+	interrupt_disable();
 	if (initialized) {
 		return -1;
 	}
@@ -75,6 +88,7 @@ int thread_libinit(thread_startfunc_t func, void *arg){
 
 		makecontext(running, (void (*)()) stub, 2, func, arg);
 		initialized = true;
+		interrupt_enable();
 		setcontext(running);
 
 		cout << "Thread library exiting.\n";
@@ -86,10 +100,10 @@ int thread_libinit(thread_startfunc_t func, void *arg){
 }
 
 int thread_create(thread_startfunc_t func, void *arg){
+	interrupt_disable();
 	if(!initialized) {
 		return -1;
 	}
-	interrupt_disable();
 	try {
 		ucontext_t* newthread = (ucontext_t*)malloc(sizeof(ucontext_t));
 
@@ -120,24 +134,51 @@ int thread_yield(void){
 	if(!initialized) {
 		return -1;
 	}
-	runNext(false);
+	runNext(false, false);
 	return 0;
 }
 
-/*
+
 int thread_lock(unsigned int lock){
+	interrupt_disable();
 	if(!initialized) {
 		return -1;
 	}
+
+	if (!locks.count(lock) || !locks[lock]) {
+		locks[lock] = true;
+	} else {
+		locked_threads[lock].push_back(running);
+		runNext(false, true);
+	}
+
+	interrupt_enable();
+	return 0;
 }
 
 int thread_unlock(unsigned int lock){
+	interrupt_disable();
 	if(!initialized) {
 		return -1;
 	}
+	if (!locked_threads.count(lock) || !locks.count(lock)) {
+		return -1;
+	}
+
+	locks[lock] = false;
+	if (locked_threads[lock].size() > 0) {
+		locks[lock] = true;
+		ucontext_t* ready = locked_threads[lock].front();
+		locked_threads[lock].pop_front();
+		waiting.push_back(ready);
+	}
+
+
+	interrupt_enable();
+	return 0;
 }
 
-int thread_wait(unsigned int lock, unsigned int cond){
+/*int thread_wait(unsigned int lock, unsigned int cond){
 	if(!initialized) {
 		return -1;
 	}
