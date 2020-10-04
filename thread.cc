@@ -14,8 +14,8 @@
 using namespace std;
 
 deque<ucontext_t*> waiting;
-ucontext_t* running = (ucontext_t*) malloc(sizeof(ucontext_t));
-ucontext_t* dead = (ucontext_t*) malloc(sizeof(ucontext_t));
+ucontext_t* running;
+ucontext_t* dead ;
 ucontext_t* to_kill = NULL;
 bool initialized = false;
 
@@ -54,22 +54,35 @@ int thread_libinit(thread_startfunc_t func, void *arg){
 	if (initialized) {
 		return -1;
 	}
-	getcontext(running);
+	try {
+		dead = (ucontext_t*) malloc(sizeof(ucontext_t));
+		running = (ucontext_t*) malloc(sizeof(ucontext_t));
+		if (dead == NULL || running == NULL) {
+			throw 0;
+		}
+		getcontext(running);
 
-	cout << "preinit" << endl;
-	char *stack = new char [STACK_SIZE];
-	cout << "postinit" << endl;
-	running->uc_stack.ss_sp = stack;
-	running->uc_stack.ss_size = STACK_SIZE;
-	running->uc_stack.ss_flags = 0;
-	running->uc_link = NULL;
+		//cout << "preinit" << endl;
+		char *stack = new char [STACK_SIZE];
+		if (stack == NULL) {
+			throw 0;
+		}
+		//cout << "postinit" << endl;
+		running->uc_stack.ss_sp = stack;
+		running->uc_stack.ss_size = STACK_SIZE;
+		running->uc_stack.ss_flags = 0;
+		running->uc_link = NULL;
 
-	makecontext(running, (void (*)()) stub, 2, func, arg);
-	initialized = true;
-	setcontext(running);
+		makecontext(running, (void (*)()) stub, 2, func, arg);
+		initialized = true;
+		setcontext(running);
 
-	cout << "Thread library exiting.\n";
-	exit(0);
+		cout << "Thread library exiting.\n";
+		exit(0);
+	} catch (...){
+		//cout << "thread_libinit failed" << endl;
+		return -1;
+	}
 }
 
 int thread_create(thread_startfunc_t func, void *arg){
@@ -81,9 +94,9 @@ int thread_create(thread_startfunc_t func, void *arg){
 		ucontext_t* newthread = (ucontext_t*)malloc(sizeof(ucontext_t));
 
 		getcontext(newthread);
-		cout << "precreate" << endl;
+		//cout << "precreate" << endl;
 		char *stack = new char [STACK_SIZE];
-		cout << "postcreate" << endl;
+		//cout << "postcreate" << endl;
 		if (stack == NULL) {
 			return -1;
 		}
@@ -98,7 +111,7 @@ int thread_create(thread_startfunc_t func, void *arg){
 		interrupt_enable();
 		return 0;
 	} catch (...) {
-		cout << "thread_create failed" << endl;
+		//cout << "thread_create failed" << endl;
 		return -1;
 	}
 }
