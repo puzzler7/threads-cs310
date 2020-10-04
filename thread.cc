@@ -78,14 +78,15 @@ int thread_create(thread_startfunc_t func, void *arg){
 		newthread->uc_stack.ss_size = STACK_SIZE;
 		newthread->uc_stack.ss_flags = 0;
 		newthread->uc_link = NULL;
+	
+
+		makecontext(newthread, (void (*)()) stub, 2, func, arg);
+		waiting.push_back(newthread);
+		interrupt_enable();
+		return 0;
 	} catch (...) {
 		return -1;
 	}
-
-	makecontext(newthread, (void (*)()) stub, 2, func, arg);
-	waiting.push_back(newthread);
-	interrupt_enable();
-	return 0;
 }
 
 int thread_yield(void){
