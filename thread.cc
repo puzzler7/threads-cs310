@@ -22,7 +22,14 @@ bool initialized = false;
 map <int, bool> locks;
 map <int, deque<ucontext_t*> > locked_threads;
 
+int swap_thread(ucontext_t* curr, ucontext_t* next) {
+	int ret = swapcontext(curr, next);
+	interrupt_disable();
+	return ret;
+}
+
 void runNext(bool del, bool slp) {
+	//cout << "in run next" << endl;
 	if (to_kill != NULL) {
 		free(to_kill->uc_stack.ss_sp);
 		free(to_kill);
@@ -31,12 +38,10 @@ void runNext(bool del, bool slp) {
 	if (del) {
 		to_kill = running;
 	} else if (slp) {
-
 	} else {
 		waiting.push_back(running);
 	}
 	if (waiting.size() <= 0) {
-		cout << "Thread library exiting.\n";
 		exit(0);
 	}
 	ucontext_t* next = waiting.front();
@@ -44,22 +49,22 @@ void runNext(bool del, bool slp) {
 	ucontext_t* oldrun = running;
 	running = next;
 	if (del) {
-		swap(dead, next);
+		//cout << "delswap" << endl;
+		swap_thread(dead, next);
 	} else {
-		swap(oldrun, next);
+		//cout << "else swap" << endl;
+		swap_thread(oldrun, next);
 	}
+	//cout << "run next ret" << endl;
 }
 
 void stub(void* fn, void* arg) {
-	((void (*)(void*))fn)(arg);
-	runNext(true, false);
-}
-
-int swap(ucontext_t* curr, ucontext_t* next) {
+	//cout << "in stub" << endl;
 	interrupt_enable();
-	int ret = swapcontext(curr, next);
+	//cout << "after stub enable" << endl;
+	((void (*)(void*))fn)(arg);
 	interrupt_disable();
-	return ret;
+	runNext(true, false);
 }
 
 int thread_libinit(thread_startfunc_t func, void *arg){
@@ -88,7 +93,6 @@ int thread_libinit(thread_startfunc_t func, void *arg){
 
 		makecontext(running, (void (*)()) stub, 2, func, arg);
 		initialized = true;
-		interrupt_enable();
 		setcontext(running);
 
 		cout << "Thread library exiting.\n";
@@ -131,10 +135,12 @@ int thread_create(thread_startfunc_t func, void *arg){
 }
 
 int thread_yield(void){
+	interrupt_disable();
 	if(!initialized) {
 		return -1;
 	}
 	runNext(false, false);
+	interrupt_enable();
 	return 0;
 }
 
