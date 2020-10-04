@@ -16,11 +16,17 @@ using namespace std;
 deque<ucontext_t*> waiting;
 ucontext_t* running = (ucontext_t*) malloc(sizeof(ucontext_t));
 ucontext_t* dead = (ucontext_t*) malloc(sizeof(ucontext_t));
+ucontext_t* to_kill = NULL;
 bool initialized = false;
 
 void runNext(bool del) {
+	if (to_kill != NULL) {
+		free(to_kill->uc_stack.ss_sp);
+		free(to_kill);
+		to_kill = NULL;
+	}
 	if (del) {
-		free(running);
+		to_kill = running;
 	} else {
 		waiting.push_back(running);
 	}
