@@ -78,7 +78,7 @@ int thread_create(thread_startfunc_t func, void *arg){
 		newthread->uc_stack.ss_size = STACK_SIZE;
 		newthread->uc_stack.ss_flags = 0;
 		newthread->uc_link = NULL;
-	} catch (std::bad_alloc& ba) {
+	} catch (...) {
 		return -1;
 	}
 
