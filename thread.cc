@@ -56,7 +56,9 @@ int thread_libinit(thread_startfunc_t func, void *arg){
 	}
 	getcontext(running);
 
+	cout << "preinit" << endl;
 	char *stack = new char [STACK_SIZE];
+	cout << "postinit" << endl;
 	running->uc_stack.ss_sp = stack;
 	running->uc_stack.ss_size = STACK_SIZE;
 	running->uc_stack.ss_flags = 0;
@@ -79,7 +81,9 @@ int thread_create(thread_startfunc_t func, void *arg){
 		ucontext_t* newthread = (ucontext_t*)malloc(sizeof(ucontext_t));
 
 		getcontext(newthread);
+		cout << "precreate" << endl;
 		char *stack = new char [STACK_SIZE];
+		cout << "postcreate" << endl;
 		if (stack == NULL) {
 			return -1;
 		}
@@ -94,6 +98,7 @@ int thread_create(thread_startfunc_t func, void *arg){
 		interrupt_enable();
 		return 0;
 	} catch (...) {
+		cout << "thread_create failed" << endl;
 		return -1;
 	}
 }
