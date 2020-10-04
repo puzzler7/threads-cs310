@@ -74,6 +74,9 @@ int thread_create(thread_startfunc_t func, void *arg){
 
 		getcontext(newthread);
 		char *stack = new char [STACK_SIZE];
+		if (stack == NULL) {
+			return -1;
+		}
 		newthread->uc_stack.ss_sp = stack;
 		newthread->uc_stack.ss_size = STACK_SIZE;
 		newthread->uc_stack.ss_flags = 0;
