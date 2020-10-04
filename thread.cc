@@ -42,6 +42,7 @@ void runNext(bool del, bool slp) {
 		waiting.push_back(running);
 	}
 	if (waiting.size() <= 0) {
+		cout << "Thread library exiting.\n";
 		exit(0);
 	}
 	ucontext_t* next = waiting.front();
