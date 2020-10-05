@@ -67,15 +67,15 @@ void runNext(bool del, bool slp) {
 
 void stub(void* fn, void* arg) {
 	//cout << "in stub" << endl;
-	//interrupt_enable();
+	interrupt_enable();
 	//cout << "after stub enable" << endl;
 	((void (*)(void*))fn)(arg);
-	//interrupt_disable();
+	interrupt_disable();
 	runNext(true, false);
 }
 
 int thread_libinit(thread_startfunc_t func, void *arg){
-	//interrupt_disable();
+	interrupt_disable();
 	if (initialized) {
 		return -1;
 	}
@@ -100,6 +100,7 @@ int thread_libinit(thread_startfunc_t func, void *arg){
 
 		makecontext(running, (void (*)()) stub, 2, func, arg);
 		initialized = true;
+		interrupt_enable();
 		setcontext(running);
 
 		cout << "Thread library exiting.\n";
@@ -111,7 +112,7 @@ int thread_libinit(thread_startfunc_t func, void *arg){
 }
 
 int thread_create(thread_startfunc_t func, void *arg){
-	//interrupt_disable();
+	interrupt_disable();
 	if(!initialized) {
 		return -1;
 	}
@@ -133,7 +134,7 @@ int thread_create(thread_startfunc_t func, void *arg){
 
 		makecontext(newthread, (void (*)()) stub, 2, func, arg);
 		waiting.push_back(newthread);
-		//interrupt_enable();
+		interrupt_enable();
 		return 0;
 	} catch (...) {
 		//cout << "thread_create failed" << endl;
@@ -142,18 +143,18 @@ int thread_create(thread_startfunc_t func, void *arg){
 }
 
 int thread_yield(void){
-	//interrupt_disable();
+	interrupt_disable();
 	if(!initialized) {
 		return -1;
 	}
 	runNext(false, false);
-	//interrupt_enable();
+	interrupt_enable();
 	return 0;
 }
 
 
 int thread_lock(unsigned int lock){
-	//interrupt_disable();
+	interrupt_disable();
 	if(!initialized) {
 		return -1;
 	}
@@ -174,12 +175,12 @@ int thread_lock(unsigned int lock){
 		}
 	}
 
-	//interrupt_enable();
+	interrupt_enable();
 	return 0;
 }
 
 int thread_unlock(unsigned int lock){
-	//interrupt_disable();
+	interrupt_disable();
 	if(!initialized) {
 		return -1;
 	}
@@ -196,11 +197,12 @@ int thread_unlock(unsigned int lock){
 		waiting.push_back(ready);
 	}
 
-	//interrupt_enable();
+	interrupt_enable();
 	return 0;
 }
 
 int thread_wait(unsigned int lock, unsigned int cond){
+	interrupt_disable();
 	if(!initialized) {
 		return -1;
 	}
@@ -211,11 +213,13 @@ int thread_wait(unsigned int lock, unsigned int cond){
 		return -1;
 	}
 	runNext(false, true);
+	interrupt_enable();
 
 	return 0;
 }
 
 int thread_signal(unsigned int lock, unsigned int cond){
+	interrupt_disable();
 	if(!initialized) {
 		return -1;
 	}
@@ -228,10 +232,12 @@ int thread_signal(unsigned int lock, unsigned int cond){
 		waiting.push_back(ready);
 	}
 
+	interrupt_enable();
 	return 0;
 }
 
 int thread_broadcast(unsigned int lock, unsigned int cond){
+	interrupt_disable();
 	if(!initialized) {
 		return -1;
 	}
@@ -244,5 +250,6 @@ int thread_broadcast(unsigned int lock, unsigned int cond){
 		waiting.push_back(ready);
 	}
 
+	interrupt_enable();
 	return 0;
 }
