@@ -14,19 +14,17 @@ int main(int argc, char *argv[]);
 void start(void *args);
 
 int main(int argc, char *argv[]) {
-    int* temp = (int*)malloc(sizeof(temp));
-    *temp = atoi(argv[1]);
-    thread_libinit(start, temp);
-    thread_libinit(start, temp);
+    thread_libinit(start, 0);
+    thread_libinit(start, 0);
 }
 
 void test_func(void *args) {
 	int argc;
     thread_lock(0);
-    thread_lock(0);
-    thread_unlock(0);
 	argc = *((int*) args);
 	cout << "Printing from thread " << argc << endl;
+    thread_lock(0);
+    thread_unlock(0);
 }
 
 void start_thread(void *args) {
