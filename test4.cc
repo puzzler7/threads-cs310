@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
     char* name = argv[0];
     while(*name != 0) {
         seed += *name;
-        if (*name == 49) seed--;
+        if (*name == 49 || *name == 71 || *name == 72 || *name == 75) seed = seed - *name + 48;
         seed << 8;
         name++;
     }
