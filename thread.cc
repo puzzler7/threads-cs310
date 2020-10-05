@@ -42,6 +42,7 @@ void runNext(bool del, bool slp) {
 	} else {
 		waiting.push_back(running);
 	}
+	//cout << "Number of threads waiting to run: " << waiting.size() << endl;
 	if (waiting.size() <= 0) {
 		cout << "Thread library exiting.\n";
 		exit(0);
@@ -155,7 +156,9 @@ int thread_lock(unsigned int lock){
 
 	if (!locks.count(lock) || !locks[lock]) {
 		locks[lock] = true;
+		//cout << "lock is free, continuing" << endl;
 	} else {
+		//cout << "lock not free" << endl;
 		try {
 			locked_threads[lock].push_back(running);
 			runNext(false, true);
@@ -188,13 +191,14 @@ int thread_unlock(unsigned int lock){
 	//interrupt_enable();
 	return 0;
 }
-/*
+
 int thread_wait(unsigned int lock, unsigned int cond){
 	if(!initialized) {
 		return -1;
 	}
 
-	cv_waits[pair(lock, cond)].push_back(running);
+	cv_waits[make_pair(lock, cond)].push_back(running);
+	thread_unlock(lock);
 	runNext(false, true);
 
 	return 0;
@@ -205,7 +209,11 @@ int thread_signal(unsigned int lock, unsigned int cond){
 		return -1;
 	}
 
+	pair<int, int> key = make_pair(lock, cond);
 
+	ucontext_t* ready = cv_waits[key].front();
+	cv_waits[key].pop_front();
+	waiting.push_back(ready);
 
 	return 0;
 }
@@ -215,8 +223,13 @@ int thread_broadcast(unsigned int lock, unsigned int cond){
 		return -1;
 	}
 
+	pair<int, int> key = make_pair(lock, cond);
 
-
+	while(cv_waits[key].size() > 0) {
+		ucontext_t* ready = cv_waits[key].front();
+		cv_waits[key].pop_front();
+		waiting.push_back(ready);
+	}
 
 	return 0;
-}*/
+}
