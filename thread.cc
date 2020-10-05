@@ -19,7 +19,7 @@ ucontext_t* running;
 ucontext_t* dead;
 ucontext_t* to_kill = NULL;
 bool initialized = false;
-map <int, bool> locks;
+map <int, ucontext_t*> locks;
 map <int, deque<ucontext_t*> > locked_threads;
 map <pair<int, int>, deque<ucontext_t*> > cv_waits;
 
@@ -48,6 +48,9 @@ void runNext(bool del, bool slp) {
 		exit(0);
 	}
 	ucontext_t* next = waiting.front();
+	if (next == NULL) {
+		del = true;
+	}
 	waiting.pop_front();
 	ucontext_t* oldrun = running;
 	running = next;
@@ -155,7 +158,10 @@ int thread_lock(unsigned int lock){
 	}
 
 	if (!locks.count(lock) || !locks[lock]) {
-		locks[lock] = true;
+		if (locks[lock] == running) {
+			return -1;
+		}
+		locks[lock] = running;
 		//cout << "lock is free, continuing" << endl;
 	} else {
 		//cout << "lock not free" << endl;
@@ -179,11 +185,12 @@ int thread_unlock(unsigned int lock){
 	if (!locks.count(lock)) {
 		return -1;
 	}
+	if (locks[lock])
 
-	locks[lock] = false;
+	locks[lock] = 0;
 	if (locked_threads[lock].size() > 0) {
-		locks[lock] = true;
 		ucontext_t* ready = locked_threads[lock].front();
+		locks[lock] = ready;
 		locked_threads[lock].pop_front();
 		waiting.push_back(ready);
 	}
