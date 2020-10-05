@@ -19,9 +19,9 @@ ucontext_t* running;
 ucontext_t* dead;
 ucontext_t* to_kill = NULL;
 bool initialized = false;
-map <int, ucontext_t*> locks;
-map <int, deque<ucontext_t*> > locked_threads;
-map <pair<int, int>, deque<ucontext_t*> > cv_waits;
+map <unsigned int, ucontext_t*> locks;
+map <unsigned int, deque<ucontext_t*> > locked_threads;
+map <pair<unsigned int, unsigned int>, deque<ucontext_t*> > cv_waits;
 
 int swap_thread(ucontext_t* curr, ucontext_t* next) {
 	int ret = swapcontext(curr, next);
