@@ -100,7 +100,6 @@ int thread_libinit(thread_startfunc_t func, void *arg){
 
 		makecontext(running, (void (*)()) stub, 2, func, arg);
 		initialized = true;
-		interrupt_enable();
 		setcontext(running);
 
 		cout << "Thread library exiting.\n";
@@ -179,8 +178,7 @@ int thread_lock(unsigned int lock){
 	return 0;
 }
 
-int thread_unlock(unsigned int lock){
-	interrupt_disable();
+int thread_unlock_helper(unsigned int lock){
 	if(!initialized) {
 		return -1;
 	}
@@ -197,8 +195,14 @@ int thread_unlock(unsigned int lock){
 		waiting.push_back(ready);
 	}
 
-	interrupt_enable();
 	return 0;
+}
+
+int thread_unlock(unsigned int lock){
+	interrupt_disable();
+	int ret = thread_unlock_helper(lock);
+	interrupt_enable();
+	return ret;
 }
 
 int thread_wait(unsigned int lock, unsigned int cond){
@@ -208,7 +212,7 @@ int thread_wait(unsigned int lock, unsigned int cond){
 	}
 
 	cv_waits[make_pair(lock, cond)].push_back(running);
-	int ret = thread_unlock(lock);
+	int ret = thread_unlock_helper(lock);
 	if (ret != 0) {
 		return -1;
 	}
