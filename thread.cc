@@ -21,6 +21,7 @@ ucontext_t* to_kill = NULL;
 bool initialized = false;
 map <int, bool> locks;
 map <int, deque<ucontext_t*> > locked_threads;
+map <pair<int, int>, deque<ucontext_t*> > cv_waits;
 
 int swap_thread(ucontext_t* curr, ucontext_t* next) {
 	int ret = swapcontext(curr, next);
@@ -158,6 +159,8 @@ int thread_lock(unsigned int lock){
 		try {
 			locked_threads[lock].push_back(running);
 			runNext(false, true);
+		} catch (...) {
+			return -1;
 		}
 	}
 
@@ -185,21 +188,35 @@ int thread_unlock(unsigned int lock){
 	//interrupt_enable();
 	return 0;
 }
-
-/*int thread_wait(unsigned int lock, unsigned int cond){
+/*
+int thread_wait(unsigned int lock, unsigned int cond){
 	if(!initialized) {
 		return -1;
 	}
+
+	cv_waits[pair(lock, cond)].push_back(running);
+	runNext(false, true);
+
+	return 0;
 }
 
 int thread_signal(unsigned int lock, unsigned int cond){
 	if(!initialized) {
 		return -1;
 	}
+
+
+
+	return 0;
 }
 
 int thread_broadcast(unsigned int lock, unsigned int cond){
 	if(!initialized) {
 		return -1;
 	}
+
+
+
+
+	return 0;
 }*/
