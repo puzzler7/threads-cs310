@@ -18,12 +18,18 @@ int main(int argc, char *argv[]) {
     thread_libinit(start, 0);
 }
 
+int ready = 0;
+
 void test_func(void *args) {
 	int argc;
+    argc = *((int*) args);
     thread_lock(0);
-    thread_wait(0, 1);
-	argc = *((int*) args);
+    while(ready < argc) {
+        thread_wait(0, 1);
+    }
+    ready++;
 	cout << "Printing from thread " << argc << endl;
+    thread_signal(0, 1);
     thread_unlock(0);
     thread_signal(0, 1);
     thread_signal(0, 1);

@@ -18,12 +18,17 @@ int main(int argc, char *argv[]) {
     thread_libinit(start, 0);
 }
 
+int ready = 0;
+
 void test_func(void *args) {
 	int argc;
+    argc = *((int*) args);
     thread_lock(0);
-    thread_wait(0, 1);
-	argc = *((int*) args);
+    while(ready < argc) {
+        thread_wait(0, 1);
+    }
 	cout << "Printing from thread " << argc << endl;
+    ready++;
     thread_unlock(0);
     thread_broadcast(0, 1);
 }
@@ -35,7 +40,6 @@ void start_thread(void *args) {
         *temp = i;
         cout << "starting thread " << i << endl;
     	thread_create(test_func, temp);
-        char* memwaste = new char[1024*1024];
     }
 }
 

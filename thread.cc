@@ -185,7 +185,9 @@ int thread_unlock_helper(unsigned int lock){
 	if (!locks.count(lock)) {
 		return -1;
 	}
-	if (locks[lock])
+	if (locks[lock] != running) {
+		return -1;
+	}
 
 	locks[lock] = 0;
 	if (locked_threads[lock].size() > 0) {
