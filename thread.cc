@@ -182,7 +182,6 @@ int thread_unlock(unsigned int lock){
 		waiting.push_back(ready);
 	}
 
-
 	//interrupt_enable();
 	return 0;
 }
