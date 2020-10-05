@@ -71,8 +71,7 @@ void stub(void* fn, void* arg) {
 	runNext(true, false);
 }
 
-int thread_libinit(thread_startfunc_t func, void *arg){
-	interrupt_disable();
+int thread_libinit_helper(thread_startfunc_t func, void *arg){
 	if (initialized) {
 		return -1;
 	}
@@ -98,14 +97,19 @@ int thread_libinit(thread_startfunc_t func, void *arg){
 		makecontext(running, (void (*)()) stub, 2, func, arg);
 		initialized = true;
 		setcontext(running);
-
 		cout << "Thread library exiting.\n";
 		exit(0);
 	} catch (...){
 		//cout << "thread_libinit failed" << endl;
-		interrupt_enable();
 		return -1;
 	}
+}
+
+int thread_libinit(thread_startfunc_t func, void *arg){
+	interrupt_disable();
+	int ret = thread_libinit_helper(func, arg);
+	interrupt_enable();
+	return ret;
 }
 
 int thread_create_helper(thread_startfunc_t func, void *arg) {
