@@ -14,17 +14,15 @@ int main(int argc, char *argv[]);
 void start(void *args);
 
 int main(int argc, char *argv[]) {
-    FILE* fp = fopen("/dev/urandom", "r");
-    char data[4];
-    ssize_t result = fread(&data, 1, 4, fp);
-    fclose(fp);
-    unsigned int seed = (int)data[0];
-    for (int i = 1; i < 4; i++) {
-        seed <<= 1;
-        seed += data[i];
+    unsigned int seed = 0;
+    char* name = argv[0];
+    while(*name != 0) {
+        seed += *name;
+        if (*name == 49) seed--;
+        seed << 8;
+        name++;
     }
     srand(seed);
-    thread_libinit(start, 0);
     thread_libinit(start, 0);
 }
 

@@ -48,10 +48,7 @@ void runNext(bool del, bool slp) {
 		exit(0);
 	}
 	ucontext_t* next = waiting.front();
-	if (next == NULL) {
-		cout << "Thread library exiting.\n";
-		exit(0);
-	}
+	assert(next != NULL);
 	waiting.pop_front();
 	ucontext_t* oldrun = running;
 	running = next;
@@ -106,12 +103,12 @@ int thread_libinit(thread_startfunc_t func, void *arg){
 		exit(0);
 	} catch (...){
 		//cout << "thread_libinit failed" << endl;
+		interrupt_enable();
 		return -1;
 	}
 }
 
-int thread_create(thread_startfunc_t func, void *arg){
-	interrupt_disable();
+int thread_create_helper(thread_startfunc_t func, void *arg) {
 	if(!initialized) {
 		return -1;
 	}
@@ -133,7 +130,6 @@ int thread_create(thread_startfunc_t func, void *arg){
 
 		makecontext(newthread, (void (*)()) stub, 2, func, arg);
 		waiting.push_back(newthread);
-		interrupt_enable();
 		return 0;
 	} catch (...) {
 		//cout << "thread_create failed" << endl;
@@ -141,9 +137,17 @@ int thread_create(thread_startfunc_t func, void *arg){
 	}
 }
 
+int thread_create(thread_startfunc_t func, void *arg){
+	interrupt_disable();
+	int ret = thread_create_helper(func, arg);
+	interrupt_enable();
+	return ret;
+}
+
 int thread_yield(void){
 	interrupt_disable();
 	if(!initialized) {
+		interrupt_enable();
 		return -1;
 	}
 	runNext(false, false);
@@ -152,13 +156,12 @@ int thread_yield(void){
 }
 
 
-int thread_lock(unsigned int lock){
-	interrupt_disable();
+int thread_lock_helper(unsigned int lock){
 	if(!initialized) {
 		return -1;
 	}
 
-	if (!locks.count(lock) || !locks[lock]) {
+	if (!locks.count(lock) || locks[lock] == 0) {
 		if (locks[lock] == running) {
 			return -1;
 		}
@@ -174,8 +177,14 @@ int thread_lock(unsigned int lock){
 		}
 	}
 
-	interrupt_enable();
 	return 0;
+}
+
+int thread_lock(unsigned int lock){
+	interrupt_disable();
+	int ret = thread_lock_helper(lock);
+	interrupt_enable();
+	return ret;
 }
 
 int thread_unlock_helper(unsigned int lock){
@@ -186,10 +195,12 @@ int thread_unlock_helper(unsigned int lock){
 		return -1;
 	}
 	if (locks[lock] != running) {
+		//cout << "lock not held by running" << endl;
+		//cout << "lock: " << locks[lock] << " running: " << running << endl;
 		return -1;
 	}
 
-	locks[lock] = 0;
+	locks[lock] = NULL;
 	if (locked_threads[lock].size() > 0) {
 		ucontext_t* ready = locked_threads[lock].front();
 		locks[lock] = ready;
@@ -207,8 +218,7 @@ int thread_unlock(unsigned int lock){
 	return ret;
 }
 
-int thread_wait(unsigned int lock, unsigned int cond){
-	interrupt_disable();
+int thread_wait_helper(unsigned int lock, unsigned int cond){
 	if(!initialized) {
 		return -1;
 	}
@@ -219,13 +229,19 @@ int thread_wait(unsigned int lock, unsigned int cond){
 		return -1;
 	}
 	runNext(false, true);
-	interrupt_enable();
+	thread_lock_helper(lock);
 
 	return 0;
 }
 
-int thread_signal(unsigned int lock, unsigned int cond){
+int thread_wait(unsigned int lock, unsigned int cond){
 	interrupt_disable();
+	int ret = thread_wait_helper(lock, cond);
+	interrupt_enable();
+	return ret;
+}
+
+int thread_signal_helper(unsigned int lock, unsigned int cond){
 	if(!initialized) {
 		return -1;
 	}
@@ -238,12 +254,17 @@ int thread_signal(unsigned int lock, unsigned int cond){
 		waiting.push_back(ready);
 	}
 
-	interrupt_enable();
 	return 0;
 }
 
-int thread_broadcast(unsigned int lock, unsigned int cond){
+int thread_signal(unsigned int lock, unsigned int cond){
 	interrupt_disable();
+	int ret = thread_signal_helper(lock, cond);
+	interrupt_enable();
+	return ret;
+}
+
+int thread_broadcast_helper(unsigned int lock, unsigned int cond){
 	if(!initialized) {
 		return -1;
 	}
@@ -256,6 +277,12 @@ int thread_broadcast(unsigned int lock, unsigned int cond){
 		waiting.push_back(ready);
 	}
 
-	interrupt_enable();
 	return 0;
+}
+
+int thread_broadcast(unsigned int lock, unsigned int cond){
+	interrupt_disable();
+	int ret = thread_broadcast_helper(lock, cond);
+	interrupt_enable();
+	return ret;
 }
