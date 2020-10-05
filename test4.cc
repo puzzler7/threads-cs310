@@ -16,6 +16,7 @@ void start(void *args);
 int main(int argc, char *argv[]) {
     thread_libinit(start, 0);
     thread_libinit(start, 0);
+    srand(time());
 }
 
 void test_func(void *args) {
@@ -23,7 +24,7 @@ void test_func(void *args) {
     thread_lock(0);
 	argc = *((int*) args);
 	cout << "Printing from thread " << argc << endl;
-    cout << "Time print: " << time() << endl;
+    cout << "Time print: " << rand() << endl;
     thread_unlock(0);
 }
 
