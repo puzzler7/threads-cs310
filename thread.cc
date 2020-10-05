@@ -155,8 +155,10 @@ int thread_lock(unsigned int lock){
 	if (!locks.count(lock) || !locks[lock]) {
 		locks[lock] = true;
 	} else {
-		locked_threads[lock].push_back(running);
-		runNext(false, true);
+		try {
+			locked_threads[lock].push_back(running);
+			runNext(false, true);
+		}
 	}
 
 	//interrupt_enable();
@@ -168,7 +170,7 @@ int thread_unlock(unsigned int lock){
 	if(!initialized) {
 		return -1;
 	}
-	if (!locked_threads.count(lock) || !locks.count(lock)) {
+	if (!locks.count(lock)) {
 		return -1;
 	}
 
