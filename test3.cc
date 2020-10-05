@@ -30,7 +30,7 @@ void test_func(void *args) {
 
 void start_thread(void *args) {
     cout << "starting threads" << endl;
-    for(int i = 0; i < 99999; i++) {
+    for(int i = 0; i < 10; i++) {
         int* temp = (int*)malloc(sizeof(int));
         *temp = i;
         cout << "starting thread " << i << endl;

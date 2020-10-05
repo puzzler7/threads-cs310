@@ -14,27 +14,31 @@ int main(int argc, char *argv[]);
 void start(void *args);
 
 int main(int argc, char *argv[]) {
-    thread_libinit(start, 0);
-    thread_libinit(start, 0);
+
+    if (argc < 2) {
+        cout << "Not enough inputs" << endl;
+        return (0);
+    }
+    int* temp = (int*)malloc(sizeof(temp));
+    *temp = atoi(argv[1]);
+    thread_libinit(start, temp);
 }
 
 void test_func(void *args) {
 	int argc;
-    thread_lock(0);
 	argc = *((int*) args);
 	cout << "Printing from thread " << argc << endl;
-    thread_lock(0);
-    thread_unlock(0);
 }
 
 void start_thread(void *args) {
     cout << "starting threads" << endl;
-    for(int i = 0; i < 100; i++) {
+	int argc;
+	argc = *((int*) args);
+    for(int i = 0; i < argc; i++) {
         int* temp = (int*)malloc(sizeof(int));
         *temp = i;
         cout << "starting thread " << i << endl;
     	thread_create(test_func, temp);
-        char* memwaste = new char[1024*1024];
     }
 }
 
