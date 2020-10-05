@@ -206,7 +206,10 @@ int thread_wait(unsigned int lock, unsigned int cond){
 	}
 
 	cv_waits[make_pair(lock, cond)].push_back(running);
-	thread_unlock(lock);
+	int ret = thread_unlock(lock);
+	if (ret != 0) {
+		return -1;
+	}
 	runNext(false, true);
 
 	return 0;
@@ -219,9 +222,11 @@ int thread_signal(unsigned int lock, unsigned int cond){
 
 	pair<int, int> key = make_pair(lock, cond);
 
-	ucontext_t* ready = cv_waits[key].front();
-	cv_waits[key].pop_front();
-	waiting.push_back(ready);
+	if (cv_waits[key].size() > 0) {
+		ucontext_t* ready = cv_waits[key].front();
+		cv_waits[key].pop_front();
+		waiting.push_back(ready);
+	}
 
 	return 0;
 }
