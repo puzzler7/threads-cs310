@@ -25,7 +25,6 @@ map <pair<unsigned int, unsigned int>, deque<ucontext_t*> > cv_waits;
 
 int swap_thread(ucontext_t* curr, ucontext_t* next) {
 	int ret = swapcontext(curr, next);
-	//interrupt_disable();
 	return ret;
 }
 
@@ -173,6 +172,9 @@ int thread_lock_helper(unsigned int lock){
 		//cout << "lock is free, continuing" << endl;
 	} else {
 		//cout << "lock not free" << endl;
+		if (locks[lock] == running) {
+			return -1;
+		}
 		try {
 			locked_threads[lock].push_back(running);
 			runNext(false, true);
@@ -233,7 +235,10 @@ int thread_wait_helper(unsigned int lock, unsigned int cond){
 		return -1;
 	}
 	runNext(false, true);
-	thread_lock_helper(lock);
+	ret = thread_lock_helper(lock);
+	if (ret != 0) {
+		return -1;
+	}
 
 	return 0;
 }

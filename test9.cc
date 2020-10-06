@@ -14,32 +14,34 @@ int main(int argc, char *argv[]);
 void start(void *args);
 
 int main(int argc, char *argv[]) {
-    unsigned int seed = 0;
-    char* name = argv[0];
-    while(*name != 0) {
-        seed += *name;
-        if (*name == 49 || *name == 71 || *name == 73 || *name == 75) seed = seed - *name + 48;
-        seed << 8;
-        name++;
-    }
-    srand(seed);
+    thread_libinit(start, 0);
     thread_libinit(start, 0);
 }
 
+int ready = 0;
+
 void test_func(void *args) {
 	int argc;
+    argc = *((int*) args);
     thread_lock(0);
-	argc = *((int*) args);
-	cout << "Printing from thread " << argc << endl;
-    for (int i = 0; i < 100+ (rand()%100); i++) {
-        cout << "Time print: " << rand() << endl;
+    thread_lock(0);
+    thread_lock(1);
+    while(ready < argc) {
+        thread_wait(0, 1);
     }
+	cout << "Printing from thread " << argc << endl;
+    ready++;
     thread_unlock(0);
+    thread_unlock(1);
+    thread_lock(0);
+    thread_lock(0);
+    thread_unlock(0);
+    thread_broadcast(0, 1);
 }
 
 void start_thread(void *args) {
     cout << "starting threads" << endl;
-    for(int i = 0; i < 50+(rand()%100); i++) {
+    for(int i = 0; i < 10; i++) {
         int* temp = (int*)malloc(sizeof(int));
         *temp = i;
         cout << "starting thread " << i << endl;
@@ -48,8 +50,6 @@ void start_thread(void *args) {
 }
 
 void start(void *args) {
-    for (int i = 0; i < (rand()%100); i++) {
-        cout << "in start function " << rand() << endl;
-    }
+    cout << "in start function" << endl;
     thread_create(start_thread, args);
 }
